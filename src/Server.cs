@@ -18,14 +18,28 @@ public class Server
         int bytesRead = await clientSocket.ReceiveAsync(buffer);
 
         int messageSize = GetMessageSize(buffer), correlationId = GetCorrelationId(buffer);
+        int requestApiVersion = ParseApiVersion(buffer);
         
         byte[] messageSizeBytes = GetBigEndianBytes(messageSize), correlationIdBytes = GetBigEndianBytes(correlationId);
 
-        byte[] result = new byte[messageSizeBytes.Length + correlationIdBytes.Length];
+        Int16 errorCode = 35;
+        byte[] errorCodeBytes = GetBigEndianBytes(errorCode);
+
+        byte[] result = new byte[messageSizeBytes.Length + correlationIdBytes.Length + errorCodeBytes.Length];
         Buffer.BlockCopy(messageSizeBytes, 0, result, 0, messageSizeBytes.Length);
         Buffer.BlockCopy(correlationIdBytes, 0, result, messageSizeBytes.Length, correlationIdBytes.Length);
+        Buffer.BlockCopy(errorCodeBytes, 0, result, messageSizeBytes.Length + correlationIdBytes.Length, errorCodeBytes.Length);
         
         await clientSocket.SendAsync(result);
+    }
+
+    static int ParseApiVersion(byte[] reqBuffer)
+    {
+        int apiVersion = 0;
+        for (int i = 6; i < 8; i++)
+            apiVersion += reqBuffer[i] << (8 * (1 - (i-6)));
+        Console.WriteLine($"Request apiVersion: {apiVersion}");
+        return apiVersion;
     }
 
     private static int GetMessageSize(byte[] buffer)
@@ -46,11 +60,15 @@ public class Server
         return correlationId;
     }
 
-    static byte[] GetBigEndianBytes(int num)
+    static byte[] GetBigEndianBytes<T>(T num)
     {
-        byte[] bigEndianByteArr = BitConverter.GetBytes(num);
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(bigEndianByteArr);
-        return bigEndianByteArr;
+        byte[] bigEndianByteArr = null!;
+        if (num is Int16)
+            bigEndianByteArr = BitConverter.GetBytes((Int16)(object)num);
+        if(num is Int32)
+            bigEndianByteArr = BitConverter.GetBytes((Int32)(object)num);
+        if(BitConverter.IsLittleEndian)
+            Array.Reverse(bigEndianByteArr!);
+        return bigEndianByteArr!;
     }
 }
