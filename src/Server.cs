@@ -14,11 +14,11 @@ public class Server
         
         Socket clientSocket = await server.AcceptSocketAsync(); // wait for client
 
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[1024]; //1KB buffer
         int bytesRead = await clientSocket.ReceiveAsync(buffer);
 
-        int messageSize = 0, correlationId = 7;
-
+        int messageSize = GetMessageSize(buffer), correlationId = GetCorrelationId(buffer);
+        
         byte[] messageSizeBytes = GetBigEndianBytes(messageSize), correlationIdBytes = GetBigEndianBytes(correlationId);
 
         byte[] result = new byte[messageSizeBytes.Length + correlationIdBytes.Length];
@@ -26,6 +26,24 @@ public class Server
         Buffer.BlockCopy(correlationIdBytes, 0, result, messageSizeBytes.Length, correlationIdBytes.Length);
         
         await clientSocket.SendAsync(result);
+    }
+
+    private static int GetMessageSize(byte[] buffer)
+    {
+        int messageSize = 0;
+        for(int i=0; i<4; i++)
+            messageSize += buffer[i] << (8*(3-i));
+        Console.WriteLine($"Request messageSize: {messageSize}");
+        return messageSize;
+    }
+
+    static int GetCorrelationId(byte[] buffer)
+    {
+        int correlationId = 0;
+        for (int i = 8; i < 12; i++)
+            correlationId += buffer[i] << (8 * (3 - (i - 8)));
+        Console.WriteLine($"Request correlationId: {correlationId}");
+        return correlationId;
     }
 
     static byte[] GetBigEndianBytes(int num)
