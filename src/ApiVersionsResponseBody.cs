@@ -13,7 +13,10 @@ public class ApiVersionsResponseBody : ResponseBody
     {
         ErrorCode = 0;
         ApiKeyEntries = new();
-        ApiKeyEntries.Add(new ApiKeyEntry(ApiKey.ApiVersions.Key, ApiKey.ApiVersions.MinVersion, ApiKey.ApiVersions.MaxVersion, 0)); //key=18 is for ApiVersions
+        ApiKeyEntries.AddRange([
+            new ApiKeyEntry(ApiKey.ApiVersions.Key, ApiKey.ApiVersions.MinVersion, ApiKey.ApiVersions.MaxVersion, 0),
+            new ApiKeyEntry(ApiKey.DescribeTopicPartitions.Key, ApiKey.DescribeTopicPartitions.MinVersion, ApiKey.DescribeTopicPartitions.MaxVersion, 0)
+        ]);
         NumApiKeys = (byte)((byte)ApiKeyEntries.Count+0x01);    //For some reason tester treats num_api_keys=2 as 1
         ThrottleTimeMs = 0;
         TagBuffer = 0;
