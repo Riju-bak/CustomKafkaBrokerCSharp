@@ -14,9 +14,17 @@ public class Server
         server.Start();
         Console.WriteLine($"Started server on port {port} ...");
         
-        Socket clientSocket = await server.AcceptSocketAsync(); // wait for client
+        while (true)
+        {
+            Socket clientSocket = await server.AcceptSocketAsync(); // wait for client
 
-        //Handle serial request from same client, so wait until client closes the connection
+            //Offload client connection to a thread from thread-pool enabling concurrency
+            _ = Task.Run(() => HandleClientAsync(clientSocket));
+        }
+    }
+
+    static async Task HandleClientAsync(Socket clientSocket)
+    {
         while (clientSocket.Connected)
         {
             byte[] requestBuffer = new byte[1024]; //1KB buffer
@@ -32,4 +40,5 @@ public class Server
             await clientSocket.SendAsync(responseBuffer);
         }
     }
+    
 }
