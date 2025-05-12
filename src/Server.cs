@@ -16,14 +16,20 @@ public class Server
         
         Socket clientSocket = await server.AcceptSocketAsync(); // wait for client
 
-        byte[] requestBuffer = new byte[1024]; //1KB buffer
-        int bytesRead = await clientSocket.ReceiveAsync(requestBuffer);
+        //Handle serial request from same client, so wait until client closes the connection
+        while (clientSocket.Connected)
+        {
+            byte[] requestBuffer = new byte[1024]; //1KB buffer
+            int bytesRead = await clientSocket.ReceiveAsync(requestBuffer);
 
-        Response response = Utils.Deserialize(requestBuffer);
+            if (bytesRead == 0) clientSocket.Close();
 
-        byte[] responseBuffer = Utils.Serialize(response);
+            Response response = Utils.Deserialize(requestBuffer);
+
+            //TCP is a byte stream protocol. Essentially we send an array of bytes that TCP divides into packets.
+            byte[] responseBuffer = Utils.Serialize(response);
         
-        await clientSocket.SendAsync(responseBuffer);
+            await clientSocket.SendAsync(responseBuffer);
+        }
     }
-
 }
